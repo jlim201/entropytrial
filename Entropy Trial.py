@@ -61,10 +61,10 @@ for x in range(0, len(y_data)):
     image_label = 'frame' + str(x)
     if y_data[x] == 1.0:
         string = 'E:/Negin Project/images/1/' + str(x) + '.png'
-        plt.imsave(string, x_data[x])
+        plt.imsave(string, x_data[x], cmap='gray')
     elif y_data[x] == 0.0:
         string = 'E:/Negin Project/images/0/' + str(x) + '.png'
-        plt.imsave(string, x_data[x])
+        plt.imsave(string, x_data[x], cmap='gray')
         
     
 #%%
@@ -106,8 +106,8 @@ plt.subplots_adjust(wspace=0.5)
 X = np.array([x[0] for x in data])
 y = np.array([Y[1] for Y in data])
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle = True)
-y_train = np.reshape(y_train, (len(y_train),1))
-y_test  = np.reshape(y_test , (len(y_test ),1))
+#y_train = np.reshape(y_train, (len(y_train),1))
+#y_test  = np.reshape(y_test , (len(y_test ),1))
 
 print("After reshaping")
 print("y_train shape: ", y_train.shape)
@@ -118,33 +118,35 @@ X_train_Gabor  = X_train
 X_test_Gabor = X_test
 
 #%%
-X_train = X_train / 255.0
+X_train = X_train / 255.0 
 X_test = X_test / 255.0
 
 
 #%%
-print(y_train[0])
+value = 55
+print(y_train[value], y_test[value])
 
 
-y_train = tf.keras.utils.to_categorical(y_train).reshape((-1,1))
-y_test = tf.keras.utils.to_categorical(y_test).reshape((-1,1))
-print(y_train[0])
+#y_train = tf.keras.utils.to_categorical(y_train)#.reshape((-1,1))
+
+#y_test = tf.keras.utils.to_categorical(y_test)#.reshape((-1,1))
+print(y_train[value], y_test[value])
 y_train.shape, y_test.shape
 #%%
 def create_model(input_shape=None):
     if input_shape is None :
-        input_shape=(246, 246, 1)
+        input_shape=(60516, 2, 1)
 
     model = Sequential()
     model.add(Conv2D(6, (5, 5), input_shape=input_shape, padding='same', activation = 'relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-
+    model.add(MaxPool2D((2,2), strides=(2,2), padding='same'))
+    print('duck')
     model.add(Conv2D(16, (5, 5), padding='same', activation = 'relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-
-    model.add(Conv2D(64, (3, 3), activation = 'relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-
+    model.add(MaxPool2D((2,2), strides=(2,2), padding='same'))
+    print('duck')
+    #model.add(Conv2D(64, (3, 3), activation = 'relu'))
+    #model.add(MaxPool2D((2,2), strides=(2,2), padding='same'))
+    print('duck')
     model.add(Flatten())
     model.add(Dense(128, activation = 'relu'))
     model.add(Dropout(0.5))
@@ -166,36 +168,43 @@ callbacks = [es, lr]
 
 
 #%%
-def GaborFeature(img, df2):
+def GaborFeature(img):
     ksize = 5 #kernelsize - feature size
     phi = 1
     num = 1
     dim = len(img.shape)
+    df2 = pd.DataFrame()
     features = []
     fmasks = []
     #print(dim)
     gabor_label = 'Gabor' + str(num)
-    sigma = 3
-    theta = 1.570796327
-    lamda = 0.785398163
-    gamma = 1
-    kernel = cv2.getGaborKernel((ksize, ksize),sigma, theta, lamda*5, gamma, phi, ktype = cv2.CV_32F)
+    #kernel = cv2.getGaborKernel((ksize, ksize),sigma, theta, lamda*5, gamma, phi, ktype = cv2.CV_32F)
+    kernel1 = cv2.getGaborKernel((5, 5),3, 1.570796327, 0.785398163*5, 1, 1, ktype = cv2.CV_32F)
     #fimg = cv2.filter2D(img, cv2.CV_8UC3, kernel)
-    window = np.outer(kernel, kernel.transpose())
-    fimg = cv2.filter2D(img, -1, window)[5:-5, 5:-5]
-    filtered_img = fimg.reshape(-1)
-    df2[gabor_label] = filtered_img
-    gabor_img = df2[gabor_label].values.reshape(246,246)
+    window1 = np.outer(kernel1, kernel1.transpose())
+    fimg = cv2.filter2D(img, -1, window1)[5:-5, 5:-5]
+    filtered_img1 = fimg.reshape(-1)
+    df2[gabor_label] = filtered_img1
+    
+    kernel2 = cv2.getGaborKernel((5, 5),9, 1.570796327, 1.570796327*5, 0.05, 1, ktype = cv2.CV_32F)
+    #fimg = cv2.filter2D(img, cv2.CV_8UC3, kernel)
+    window2 = np.outer(kernel2, kernel2.transpose())
+    fimg = cv2.filter2D(img, -1, window2)[5:-5, 5:-5]
+    filtered_img2 = fimg.reshape(-1)
+    df2[gabor_label] = filtered_img2
+    #gabor_img = df2[gabor_label].values.reshape(246,246)
     #plt.imshow(gabor_img, cmap='gray')
     #plt.title('ksize:'+str(ksize)+' sigma:'+str(sigma)+' theta:'+str(theta)+' lamda:'+str(lamda*5)+' gamma:'+str(gamma)+' phi:'+str(phi))
     #plt.show()
     num+=1
     if(dim == 2):
       ret,fmask = cv2.threshold(fimg,254,1,cv2.THRESH_BINARY_INV)
-      fmask = fmask.reshape((gabor_img.shape[0]*gabor_img.shape[1],))
-      fimg = fimg.reshape((gabor_img.shape[0]*gabor_img.shape[1],))
-      features.append(fimg)
-      features.append(fmask)
+      #fmask = fmask.reshape((gabor_img.shape[0]*gabor_img.shape[1],))
+      #fimg = fimg.reshape((gabor_img.shape[0]*gabor_img.shape[1],))
+      #features.append(fimg)
+      #features.append(fmask)
+      features.append(filtered_img1)
+      features.append(filtered_img2)
     elif(dim == 3):
       fimg = fimg.reshape((fimg.shape[0]*fimg.shape[1],3))
       features.append(fimg[:,0])
@@ -208,14 +217,14 @@ def GaborFeature(img, df2):
                       
     features = np.array(features)
     features = features.T
-    return gabor_img
+    return features
 #%%
-def create_Gabor_features(data, df2):
-    Feature_data = np.zeros((len(data),246,246))
+def create_Gabor_features(data):
+    Feature_data = np.zeros((len(data),60516,2))
 
     for i in range(len(data)):
         img = data[i]
-        out = GaborFeature(img, df2)
+        out = GaborFeature(img)
         Feature_data[i] = out/255.00
 
         
@@ -224,13 +233,13 @@ def create_Gabor_features(data, df2):
 #%%
 df2 = pd.DataFrame()
 plt.imshow(X_train_Gabor[0]/255.0, cmap ='gray')
-X_train_Gabor=create_Gabor_features(X_train_Gabor, df2)
-X_test_Gabor=create_Gabor_features(X_test_Gabor, df2)
+X_train_Gabor=create_Gabor_features(X_train_Gabor)
+X_test_Gabor=create_Gabor_features(X_test_Gabor)
 #%%
-print(X_train_Gabor.max())
+print(X_train_Gabor[1])
 #%%
 print(X_train_Gabor.shape , X_test_Gabor.shape)
-sample = 3#random.randint(0,5)
+sample = 5#random.randint(0,5)
 plt.subplot(1,2,1)
 plt.imshow(X_train[sample],cmap='gray')
 plt.axis("off")
@@ -241,12 +250,12 @@ print(X_train_Gabor.shape)
 
 #%%
 Gabor_model = create_model()
-#loss= activation='sigmoid'
+loss= activation='sigmoid'
 Gabor_model.compile(loss='binary_crossentropy', metrics=['binary_accuracy'], optimizer='adam' )
 #%%
 Gabor_model.summary()
 #%%
-Gabor_history = Gabor_model.fit(X_train_Gabor, y_train[0:1796], batch_size= 8 , epochs=50, validation_data = (X_test_Gabor, y_test[0:449]) ,callbacks = [callbacks])
+Gabor_history = Gabor_model.fit(X_train_Gabor, y_train, batch_size= 8 , epochs=50, validation_data = (X_test_Gabor, y_test) ,callbacks = [callbacks])
 
 #%%
 def plot_performance(history):
