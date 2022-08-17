@@ -19,7 +19,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 
-# In[123]:
+# In[252]:
 
 
 X = np.load('E:/Negin Project/data/X_quality.npy')
@@ -29,9 +29,10 @@ y = pd.read_csv('E:/Negin Project/y_data.csv').values
 x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle = True)
 print(f'x_train.shape: {x_train.shape}, y_train.shape: {y_train.shape}')
 print(f'x_test.shape: {x_test.shape}, y_test.shape: {y_test.shape}')
+plt.imshow(x_train[2])
 
 
-# In[182]:
+# In[280]:
 
 
 ###################################################################
@@ -47,7 +48,11 @@ def feature_extractor(dataset):
         #Reset dataframe to blank after each loop.
         
         input_img = x_train[image, :,:,:]
-        img = np.array(input_img, dtype ='uint8')
+        img = np.array(input_img)
+    
+        
+
+
     ################################################################
     #START ADDING DATA TO THE DATAFRAME
     #Add feature extractors, e.g. edge detection, smoothing, etc. 
@@ -56,13 +61,17 @@ def feature_extractor(dataset):
          
         #Add pixel values to the data frame
         pixel_values = img.reshape(-1)
-        df['Pixel_Value'] = pixel_values   #Pixel value itself as a feature
+        df['Pixel_Value'] = pixel_values 
+        #Pixel value itself as a feature
         #df['Image_Name'] = image   #Capture image name as we read multiple images
         
         # FEATURE 2 - Bunch of Gabor filter responses
         
                 #Generate Gabor features
         num = 1  #To count numbers up in order to give Gabor features a lable in the data frame
+        dim = len(img.shape)
+        #print(img.shape)
+        features = []
         kernels = []
         for theta in (np.pi/4, np.pi/2):   #Define number of thetas
             #theta = (np.pi/2)*theta
@@ -82,31 +91,22 @@ def feature_extractor(dataset):
                 df[gabor_label] = filtered_img  #Labels columns as Gabor1, Gabor2, etc.
                 # print(gabor_label, ': theta=', theta, ': sigma=', sigma, ': lamda=', lamda, ': gamma=', gamma)
                 num += 1  #Increment for gabor column label
-        #kernels_out = []
-        #for theta in (np.pi/4, np.pi/3):   #Define number of thetas
-            #theta = (np.pi/2)*theta
-            
-            #for sigma in (1, 3):  #Sigma with 1 and 3
-                #lamda = np.pi/3
-                #gamma = 0.05
-                #gabor_label = 'Gaborout' + str(num)  #Label Gabor columns as Gabor1, Gabor2, etc.
-    #                print(gabor_label)
-                #ksize=5
-                #kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lamda*5, gamma, 1, ktype=cv2.CV_32F)    
-                #print(kernel)
-                #kernels_out.append(kernel)
-                #Now filter the image and add values to a new column 
-                #fimg = cv2.filter2D(img, cv2.CV_8UC3, kernel)
-                #filtered_img = fimg.reshape(-1)
-                #df[gabor_label] = filtered_img  #Labels columns as Gabor1, Gabor2, etc.
-                # print(gabor_label, ': theta=', theta, ': sigma=', sigma, ': lamda=', lamda, ': gamma=', gamma)
-                num += 1          
-         
+                #print(dim)
+                if(dim == 3):
+                      ret,fmask = cv2.threshold(fimg,254,1,cv2.THRESH_BINARY_INV)
+                      fmask = fmask.reshape((fimg.shape[0]*fimg.shape[1],))
+                      fimg = fimg.reshape((fimg.shape[0]*fimg.shape[1],))
+                      features.append(fimg)
+                      features.append(fmask)
+                
+        features = np.array(features)
+        features = features.T
         # FEATURE 3 Sobel
         edge_sobel = sobel(img)
         edge_sobel1 = edge_sobel.reshape(-1)
         df['Sobel'] = edge_sobel1
         
+        #print(img)
         img = img.squeeze()
         meijering_edge = meijering(img, 3)
         meijering1 = meijering_edge.reshape(-1)
@@ -116,9 +116,16 @@ def feature_extractor(dataset):
         sato1 = sato_edge.reshape(-1)
         df['sato'] = sato1
         #Add more filters as needed
+        #print(features)
+        features = np.hstack([features[:,0:12], features[:,18:36]])
+        num_clusters = 3
+        [kmeans, y] = kmeansClustering(features, num_clusters)
+        df['kmeans'] = y
+        
         
         #Append features from current image to the dataset
         image_dataset = pd.concat([df, image_dataset])
+        #print(image_dataset.shape)
         #image_dataset = image_dataset.append(df)
         
         
@@ -126,11 +133,12 @@ def feature_extractor(dataset):
 ####################################################################
 
 
-# In[183]:
+# In[ ]:
 
 
 #Extract features from training images
 import skimage
+from PIL import Image
 image_features = feature_extractor(x_train)
 print(f'image_features.shape: {image_features.shape}')
 
@@ -144,6 +152,17 @@ image_features = np.expand_dims(image_features, axis=0)
 X_for_RF = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
 
 print(f'X_for_RF.shape: {X_for_RF.shape}')
+
+
+# In[203]:
+
+
+from sklearn.cluster import KMeans
+def kmeansClustering(features, n_clusters):
+  kmeans = KMeans(n_clusters=n_clusters, init = 'k-means++')
+  kmeans.fit(features)
+  y = kmeans.predict(features)
+  return kmeans, y
 
 
 # In[185]:
