@@ -6,7 +6,7 @@
 
 # https://youtu.be/nK-2k_ENgEc
 
-import numpy as np 
+import numpy as np z
 import matplotlib.pyplot as plt
 import glob
 import cv2
@@ -19,7 +19,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 
-# In[252]:
+# In[289]:
 
 
 X = np.load('E:/Negin Project/data/X_quality.npy')
@@ -70,7 +70,7 @@ def feature_extractor(dataset):
                 #Generate Gabor features
         num = 1  #To count numbers up in order to give Gabor features a lable in the data frame
         dim = len(img.shape)
-        #print(img.shape)
+        
         features = []
         kernels = []
         for theta in (np.pi/4, np.pi/2):   #Define number of thetas
@@ -133,7 +133,7 @@ def feature_extractor(dataset):
 ####################################################################
 
 
-# In[ ]:
+# In[281]:
 
 
 #Extract features from training images
@@ -143,7 +143,7 @@ image_features = feature_extractor(x_train)
 print(f'image_features.shape: {image_features.shape}')
 
 
-# In[184]:
+# In[282]:
 
 
 #Reshape to a vector for Random Forest / SVM training
@@ -154,7 +154,7 @@ X_for_RF = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #imag
 print(f'X_for_RF.shape: {X_for_RF.shape}')
 
 
-# In[203]:
+# In[283]:
 
 
 from sklearn.cluster import KMeans
@@ -165,7 +165,7 @@ def kmeansClustering(features, n_clusters):
   return kmeans, y
 
 
-# In[185]:
+# In[284]:
 
 
 
@@ -197,19 +197,19 @@ test_prediction = RF_model.predict(test_for_RF)
 print(f'test_prediction.shape:{test_prediction.shape}')
 
 
-# In[189]:
+# In[285]:
 
 
 print(test_prediction[:,1])
 
 
-# In[201]:
+# In[286]:
 
 
 print(y_test.shape)
 
 
-# In[202]:
+# In[288]:
 
 
 #Print overall accuracy
