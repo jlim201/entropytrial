@@ -6,7 +6,7 @@
 
 # https://youtu.be/nK-2k_ENgEc
 
-import numpy as np z
+import numpy as np 
 import matplotlib.pyplot as plt
 import glob
 import cv2
